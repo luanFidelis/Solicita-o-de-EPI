@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HHTEC • Solicitação de Material</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Mesmo tema e mesmos estilos de tela do sistema em produção. -->
+    <link rel="stylesheet" href="assets/hhtec-ui.css">
+    <link rel="stylesheet" href="assets/solicitacao.css">
+<style>
+    /* Único acréscimo desta demonstração: o seletor de papel no topo.
+       No sistema real quem define o papel é a sessão do usuário logado. */
+    .demo-papeis{display:inline-flex;gap:5px;background:var(--line-2);padding:4px;
+                 border:1px solid var(--line);border-radius:22px}
+    .demo-papel{font-family:var(--FB);font-size:.74rem;font-weight:600;padding:5px 13px;border-radius:20px;
+                cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px;
+                border:1px solid transparent!important;background:transparent!important;color:var(--ink-2)!important}
+    .demo-papel:hover{color:var(--ink)!important}
+    .demo-papel.on{background:var(--accent)!important;color:var(--hdr)!important}
+    .demo-papel small{font-weight:500;opacity:.85;font-size:.62rem}
+    .demo-nota{padding:12px 14px;border-left:3px solid var(--accent);background:var(--accent-s);
+               color:var(--ink-2);font-size:.84rem;line-height:1.55;margin-bottom:16px}
+    .demo-nota b{color:var(--ink)}
+</style>
+</head>
+<body>
+<!-- Transições de mosaico + onda 3D (three.js), iguais às do sistema. -->
+<script src="/lib/js/hhtec-fx.js"></script>
+
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-mark">
+            <div class="brand-icon"><i class="fa fa-right-left"></i></div>
+            <span class="brand-name">HHTEC</span>
+        </div>
+        <span class="brand-pill">Solicitação de material</span>
+    </div>
+    <div class="topbar-r">
+        <div class="demo-papeis" id="demoPapeis">
+            <button class="demo-papel on" data-papel="solicitante">
+                <i class="fa fa-user"></i> Ana Souza <small>solicitante</small>
+            </button>
+            <button class="demo-papel" data-papel="gestor">
+                <i class="fa fa-user-shield"></i> Marcos Lima <small>gestor ST</small>
+            </button>
+        </div>
+    </div>
+</header>
+
+<div class="wrap wrap-md" style="margin:0 auto;">
+    <div class="head-bar">
+        <div>
+            <div class="section-tag">Pedido de material</div>
+            <h1 class="page-title">Solicitação de EPI</h1>
+            <div class="page-sub" id="pageSub"></div>
+        </div>
+        <div>
+            <span class="api-chip" id="apiChip"><span class="dot"></span> <span id="apiTxt">verificando API…</span></span>
+        </div>
+    </div>
+
+    <div class="demo-nota">
+        <b>Demonstração.</b> O mesmo sistema muda de tela conforme o cargo de quem entra.
+        A <b>solicitante</b> pede material e vê só os pedidos dela; o <b>gestor</b> recebe os pedidos
+        de todas as unidades e resolve item por item — transferindo do estoque da matriz ou marcando
+        como comprado. Quando nenhum item fica em aberto, o pedido é encerrado automaticamente.
+        Use o seletor no topo para alternar entre os dois.
+    </div>
+
+    <div id="avisoApi" style="display:none;" class="alerta">
+        <i class="fa fa-triangle-exclamation"></i> <b>A API não respondeu.</b>
+        <span id="avisoApiMsg"></span>
+    </div>
+
+    <div id="layout" class="grid2">
+        <!-- ============ NOVA SOLICITAÇÃO (só para quem pede) ============ -->
+        <div class="panel" id="painelNovo">
+            <div class="panel-hd"><div class="panel-title"><span class="ti"><i class="fa fa-plus"></i></span> Nova solicitação</div></div>
+            <div class="panel-body">
+                <div class="fg-row">
+                    <div class="fg">
+                        <label class="fl">Unidade que está pedindo</label>
+                        <div class="fi fi-fixo" title="Você só pode pedir material para a sua unidade">
+                            <i class="fa fa-location-dot"></i> <span id="minhaUnidade">—</span>
+                        </div>
+                    </div>
+                    <div class="fg">
+                        <label class="fl">Data de emissão</label>
+                        <input type="date" class="fi" id="dataEmissao">
+                    </div>
+                </div>
+
+                <div class="fg">
+                    <label class="fl">Materiais do seu estoque</label>
+                    <div class="pk-search">
+                        <i class="fa fa-magnifying-glass"></i>
+                        <input type="text" id="busca" placeholder="Buscar por nome ou código…" oninput="renderCatalogo()" autocomplete="off">
+                    </div>
+                    <div class="pk-list" id="catalogo"></div>
+                </div>
+
+                <div class="fg">
+                    <label class="fl">Itens do pedido <span id="qtdItens">0</span></label>
+                    <div id="boxItens"></div>
+                </div>
+
+                <div class="fg">
+                    <label class="fl">Observação</label>
+                    <input type="text" class="fi" id="observacoes" placeholder="Ex.: acabou a luva M, precisamos de pares">
+                </div>
+
+                <div class="sol-acoes">
+                    <button class="btn-mini" onclick="enviar()"><i class="fa fa-paper-plane"></i> Enviar pedido</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ LISTA DE PEDIDOS ============ -->
+        <div class="panel">
+            <div class="panel-hd">
+                <div class="panel-title">
+                    <span class="ti"><i class="fa fa-list" id="iconeLista"></i></span>
+                    <span id="tituloLista">Meus pedidos</span>
+                </div>
+                <button class="btn-reload" onclick="carregar()" title="Atualizar"><i class="fa fa-arrows-rotate"></i></button>
+            </div>
+
+            <div class="fl-barra">
+                <div class="fl-busca">
+                    <i class="fa fa-magnifying-glass"></i>
+                    <input type="text" id="flBusca" placeholder="Buscar por nº do pedido, solicitante ou material…"
+                           oninput="pintarLista()" autocomplete="off">
+                    <button class="fl-limpar" onclick="limparFiltros()" title="Limpar filtros"><i class="fa fa-xmark"></i></button>
+                </div>
+                <div class="fl-linha">
+                    <span class="fl-rot">Situação</span>
+                    <button class="fl-chip on" data-g="st" data-v=""            onclick="chip(this)">Todas</button>
+                    <button class="fl-chip"    data-g="st" data-v="ABERTO"      onclick="chip(this)">Em aberto</button>
+                    <button class="fl-chip"    data-g="st" data-v="TRANSFERIDO" onclick="chip(this)">Transferido</button>
+                    <button class="fl-chip"    data-g="st" data-v="FINALIZADO"  onclick="chip(this)">Finalizado</button>
+                    <span class="fl-conta" id="flConta"></span>
+                </div>
+            </div>
+
+            <div class="panel-body" id="lista">
+                <div class="pk-vazio"><i class="fa fa-spinner fa-spin"></i> carregando…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tela do pedido: tudo do pedido + as duas saídas por item. -->
+<div class="modal" id="modalDetalhe" onclick="if(event.target===this)fecharDetalhe()">
+    <div class="modal-box dt-box">
+        <div class="modal-hd">
+            <div>
+                <h3 id="dtTitulo"></h3>
+                <p>Tudo que foi pedido e o que já foi resolvido.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <span class="st-pill" id="dtPill"></span>
+                <button class="btn-x" onclick="fecharDetalhe()" title="Fechar"><i class="fa fa-xmark"></i></button>
+            </div>
+        </div>
+        <div class="modal-bd">
+            <div class="dt-info" id="dtInfo"></div>
+            <div class="dt-sec">Itens do pedido</div>
+            <div id="dtItens"></div>
+        </div>
+        <div class="cf-rodape" style="justify-content:space-between">
+            <span id="dtRodape"></span>
+            <button class="acao-cf ghost" onclick="fecharDetalhe()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmação: um modal só, reaproveitado por transferir e comprar. -->
+<div class="modal" id="modalConfirma" onclick="if(event.target===this)fecharConfirma()">
+    <div class="modal-box cf-box">
+        <div class="cf-corpo">
+            <div class="cf-ico"></div>
+            <h3 class="cf-titulo"></h3>
+            <p class="cf-texto"></p>
+            <div class="cf-detalhe"></div>
+        </div>
+        <div class="cf-rodape">
+            <button class="acao-cf ghost cf-cancelar" onclick="fecharConfirma()">Cancelar</button>
+            <button class="acao-cf cf-ok" onclick="executarConfirma()"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =====================================================================
+   Os dois usuários vêm do data.sql. Alternar o papel troca apenas o id
+   usado nas chamadas — é assim que o sistema real se comporta: quem
+   decide o que aparece é o cargo do usuário, não a tela.
+   ===================================================================== */
+const USUARIOS = {
+    solicitante: { id:1, nome:'Ana Souza',   unidade:'SAO_BERNARDO', rotulo:'SBC — 114 SBC-BOMBAS', regiao:'SBC-BOMBAS', gestor:false },
+    gestor:      { id:2, nome:'Marcos Lima', unidade:'SEDE',         rotulo:'BASE — 001 ADM. HHTEC', regiao:'ADM. HHTEC', gestor:true  }
+};
+let papel = 'solicitante';
+const eu = () => USUARIOS[papel];
+const PODE_APROVAR = () => eu().gestor;
+
+let PRODUTOS = [];       // catálogo da unidade de quem pede
+let ORIGEM   = null;     // estoque da matriz (de onde o gestor transfere)
+let itens = [];          // itens do pedido em montagem
+let PEDIDOS = [];
+let pedidoAberto = null;
+let itemAlvo = null, solAlvo = null;
+
+const norm = s => (s||'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const esc  = s => (s==null?'':s.toString()).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const ITL = { ABERTO:'em aberto', TRANSFERIDO:'transferido', COMPRADO:'comprado' };
+
+/* ---------------- chamada à API ---------------- */
+async function api(url, opcoes) {
+    const r = await fetch(url, opcoes);
+    const t = await r.text();
+    let corpo = null;
+    try { corpo = t ? JSON.parse(t) : null; } catch (e) { corpo = t; }
+    if (!r.ok) throw new Error((typeof corpo === 'string' && corpo) ? corpo : ('HTTP ' + r.status));
+    return corpo;
+}
+
+function marcarApi(ok, msg) {
+    const chip = document.getElementById('apiChip');
+    chip.className = 'api-chip ' + (ok ? 'on' : 'off');
+    document.getElementById('apiTxt').textContent = ok ? 'API online' : 'API offline';
+    const aviso = document.getElementById('avisoApi');
+    aviso.style.display = ok ? 'none' : 'block';
+    document.getElementById('avisoApiMsg').textContent = ok ? '' : (' ' + (msg || ''));
+}
+
+/* ---------------- troca de papel ---------------- */
+document.getElementById('demoPapeis').addEventListener('click', e => {
+    const btn = e.target.closest('.demo-papel');
+    if (!btn) return;
+    papel = btn.dataset.papel;
+    document.querySelectorAll('.demo-papel').forEach(b => b.classList.toggle('on', b === btn));
+    aplicarPapel();
+    iniciar();
+});
+
+function aplicarPapel() {
+    const g = PODE_APROVAR();
+    document.getElementById('layout').className = g ? 'grid1' : 'grid2';
+    document.getElementById('painelNovo').style.display = g ? 'none' : '';
+    document.getElementById('tituloLista').textContent = g ? 'Pedidos recebidos' : 'Meus pedidos';
+    document.getElementById('iconeLista').className = 'fa fa-' + (g ? 'clipboard-check' : 'list');
+    document.getElementById('pageSub').innerHTML = g
+        ? 'Pedidos das unidades. Você decide item por item: transferir do seu estoque ou comprar.'
+        : 'Peça o material que está faltando. A solicitação vai para a <b>gestora</b>, que decide se compra ou transfere de outro polo.';
+    document.getElementById('minhaUnidade').textContent = eu().rotulo;
+    document.getElementById('dataEmissao').value = new Date().toISOString().slice(0,10);
+}
+
+/* ---------------- catálogo ---------------- */
+async function carregarCatalogo() {
+    PRODUTOS = await api('/solicitarEpi/listarRegiao?regiao=' + encodeURIComponent(eu().regiao));
+    PRODUTOS = PRODUTOS.map(p => ({ id:p.id, cod:p.codigoH, nome:p.nomeCompletos,
+                                    saldo:p.quantidadeEstoque, regiao:eu().unidade==='SBC'?'SBC':'BASE' }));
+    renderCatalogo();
+}
+
+function renderCatalogo() {
+    const inp = document.getElementById('busca');
+    if (!inp) return;
+    const q = norm(inp.value.trim());
+    const arr = PRODUTOS.filter(p => !q || norm(p.nome).includes(q) || norm(p.cod).includes(q)).slice(0,60);
+    const box = document.getElementById('catalogo');
+    if (!arr.length) { box.innerHTML = '<div class="pk-vazio">Nenhum EPI encontrado.</div>'; return; }
+    box.innerHTML = arr.map(p => `
+        <div class="pk-card" onclick="addItem(${p.id})">
+            <div class="pk-foto"><i class="fa fa-box"></i></div>
+            <div>
+                <span class="pk-cod">${esc(p.cod)}</span><span class="pk-id" title="ID do produto no estoque">#${p.id}</span>
+                <div class="pk-nome">${esc(p.nome)}</div>
+            </div>
+            <div class="pk-saldo"><b>${p.saldo}</b>em estoque</div>
+        </div>`).join('');
+}
+
+/* ---------------- itens ---------------- */
+function addItem(id) {
+    const p = PRODUTOS.find(x => x.id === id);
+    if (!p) return;
+    if (itens.some(i => i.idProduto === id)) { alert('Esse EPI já está na lista.'); return; }
+    itens.push({ idProduto:p.id, codigoProduto:p.cod, descricao:p.nome, quantidade:1, observacao:'' });
+    renderItens();
+}
+function removeItem(i){ itens.splice(i,1); renderItens(); }
+function setItem(i,campo,valor){ itens[i][campo] = (campo==='quantidade') ? (parseInt(valor,10)||1) : valor; }
+
+function renderItens() {
+    const box = document.getElementById('boxItens');
+    if (!box) return;
+    document.getElementById('qtdItens').textContent = itens.length;
+    if (!itens.length) { box.innerHTML = '<div class="vazio-itens"><i class="fa fa-hand-pointer"></i> Clique nos materiais acima para adicionar ao pedido.</div>'; return; }
+    box.innerHTML = `<table class="itens-tbl">
+        <thead><tr><th style="width:54px">ID</th><th style="width:78px">Código</th><th>Descrição</th><th style="width:70px">Qtd</th><th>Obs.</th><th style="width:40px"></th></tr></thead>
+        <tbody>${itens.map((it,i) => `
+            <tr>
+                <td><span class="pk-id">#${it.idProduto}</span></td>
+                <td><span class="pk-cod">${esc(it.codigoProduto)}</span></td>
+                <td><span style="font-size:.82rem">${esc(it.descricao)}</span></td>
+                <td><input type="number" min="1" value="${it.quantidade}" onchange="setItem(${i},'quantidade',this.value)" style="text-align:center"></td>
+                <td><input type="text" value="${esc(it.observacao)}" placeholder="opcional" onchange="setItem(${i},'observacao',this.value)"></td>
+                <td><button class="btn-x" onclick="removeItem(${i})" title="Remover"><i class="fa fa-trash"></i></button></td>
+            </tr>`).join('')}
+        </tbody></table>`;
+}
+
+async function enviar() {
+    if (!itens.length) { alert('Adicione pelo menos 1 material ao pedido.'); return; }
+    if (itens.some(i => !i.quantidade || i.quantidade < 1)) { alert('Todas as quantidades precisam ser maior que zero.'); return; }
+    try {
+        await api('/solicitarEpi/solicitar', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                dataEmissao: document.getElementById('dataEmissao').value,
+                solicitante: eu().nome,
+                observacoes: document.getElementById('observacoes').value,
+                unidade: eu().unidade,
+                usuarioId: eu().id,
+                itemSolicitacao: itens
+            })
+        });
+        itens = []; document.getElementById('observacoes').value = '';
+        renderItens();
+        await carregar();
+        limparAviso();
+        confirmar({ icone:'fa-circle-check', tom:'ok', titulo:'Pedido enviado',
+                    texto:'Alterne para <b>Marcos Lima</b> no topo para ver como ele chega ao gestor.',
+                    detalhe:'', rotulo:'Entendi', aoConfirmar:null });
+        document.getElementById('modalConfirma').querySelector('.cf-cancelar').style.display = 'none';
+    } catch (e) { alert('Não foi possível enviar: ' + e.message); }
+}
+
+/* ---------------- filtros da lista ---------------- */
+const filtros = { st:'' };
+function chip(botao) {
+    const g = botao.dataset.g;
+    document.querySelectorAll(`.fl-chip[data-g="${g}"]`).forEach(b => b.classList.remove('on'));
+    botao.classList.add('on');
+    filtros[g] = botao.dataset.v;
+    pintarLista();
+}
+function limparFiltros() {
+    filtros.st = '';
+    const b = document.getElementById('flBusca'); if (b) b.value = '';
+    document.querySelectorAll('.fl-chip').forEach(x => x.classList.toggle('on', x.dataset.v === ''));
+    pintarLista();
+}
+function casaBusca(s, q) {
+    if (!q) return true;
+    const its = s.itemSolicitacao || [];
+    const alvo = ['#'+s.id, s.id, s.solicitante, s.unidade, s.observacoes,
+                  ...its.map(i => (i.descricao||'') + ' ' + (i.codigoProduto||''))].join(' ');
+    return norm(alvo).includes(q);
+}
+
+/* ---------------- lista ---------------- */
+async function carregar() {
+    const box = document.getElementById('lista');
+    box.innerHTML = '<div class="pk-vazio"><i class="fa fa-spinner fa-spin"></i> carregando…</div>';
+    try {
+        PEDIDOS = await api(PODE_APROVAR()
+            ? `/gestor/${eu().id}/solicitacoes`
+            : `/usuario/${eu().id}/solicitacoes`);
+        marcarApi(true);
+        pintarLista();
+    } catch (e) {
+        marcarApi(false, e.message);
+        box.innerHTML = `<div class="pk-vazio"><i class="fa fa-plug-circle-xmark" style="font-size:1.8rem;display:block;margin-bottom:8px"></i>${esc(e.message)}</div>`;
+    }
+}
+
+function pintarLista() {
+    const box = document.getElementById('lista');
+    if (!box) return;
+    const campo = document.getElementById('flBusca');
+    const q = norm((campo ? campo.value : '').trim());
+    const arr = PEDIDOS.filter(s =>
+           (!filtros.st || (s.status||'ABERTO').toUpperCase() === filtros.st)
+        && casaBusca(s, q));
+
+    const conta = document.getElementById('flConta');
+    if (conta) conta.textContent = PEDIDOS.length
+        ? (arr.length === PEDIDOS.length ? `${PEDIDOS.length} pedido${PEDIDOS.length>1?'s':''}` : `${arr.length} de ${PEDIDOS.length}`)
+        : '';
+
+    if (!PEDIDOS.length) {
+        box.innerHTML = `<div class="pk-vazio"><i class="fa fa-inbox" style="font-size:1.8rem;display:block;margin-bottom:8px"></i>${
+            PODE_APROVAR() ? 'Nenhum pedido recebido. Alterne para “Ana Souza” e crie um.' : 'Você ainda não fez nenhum pedido.'}</div>`;
+        return;
+    }
+    if (!arr.length) {
+        box.innerHTML = `<div class="pk-vazio"><i class="fa fa-filter-circle-xmark" style="font-size:1.8rem;display:block;margin-bottom:8px"></i>Nenhum pedido com esses filtros.<br>
+            <button class="acao-it" style="margin-top:10px" onclick="limparFiltros()">Limpar filtros</button></div>`;
+        return;
+    }
+
+    box.innerHTML = arr.map(s => {
+        const st = (s.status||'ABERTO').toUpperCase();
+        const its = s.itemSolicitacao || [];
+        const abertos = its.filter(i => (i.statusProduto||'ABERTO').toUpperCase() === 'ABERTO').length;
+        return `<div class="sol-card clicavel" onclick="abrirDetalhe('${esc(String(s.id))}')" title="Ver o pedido">
+            <div class="sol-top">
+                <div>
+                    <div class="sol-id">#${esc(String(s.id))}</div>
+                    <div class="sol-unid">${esc(s.unidade||'—')}</div>
+                    <div class="sol-meta">${esc(s.solicitante||'—')} · ${esc(s.dataEmissao||'—')}</div>
+                </div>
+                <span class="st-pill st-${st}">${st}</span>
+            </div>
+            <div class="sol-rodape">
+                <span class="sol-resumo">
+                    <i class="fa fa-boxes-stacked"></i> ${its.length} ${its.length===1?'item':'itens'}
+                    ${abertos ? `<span class="sol-abertos">${abertos} em aberto</span>` : ''}
+                </span>
+                <span class="sol-abrir">${PODE_APROVAR() && abertos ? 'Resolver' : 'Ver'} <i class="fa fa-arrow-right"></i></span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ===================== TELA DO PEDIDO ===================== */
+function abrirDetalhe(id) {
+    const s = PEDIDOS.find(x => String(x.id) === String(id));
+    if (!s) return;
+    pedidoAberto = s;
+    const st = (s.status||'ABERTO').toUpperCase();
+    const its = s.itemSolicitacao || [];
+    const abertos = its.filter(i => (i.statusProduto||'ABERTO').toUpperCase() === 'ABERTO').length;
+
+    document.getElementById('dtTitulo').innerHTML = `Pedido #${esc(String(s.id))}`;
+    document.getElementById('dtPill').className = 'st-pill st-' + st;
+    document.getElementById('dtPill').textContent = st;
+
+    document.getElementById('dtInfo').innerHTML = `
+        <div class="dt-linha"><span>Unidade</span><b>${esc(s.unidade||'—')}</b></div>
+        <div class="dt-linha"><span>Solicitante</span><b>${esc(s.solicitante||'—')}</b></div>
+        <div class="dt-linha"><span>Emissão</span><b>${esc(s.dataEmissao||'—')}</b></div>
+        <div class="dt-linha"><span>Registrado em</span><b>${esc((s.criadoEm||'—').toString().replace('T',' ').slice(0,16))}</b></div>
+        ${s.observacoes ? `<div class="dt-obs"><i class="fa fa-comment"></i> ${esc(s.observacoes)}</div>` : ''}`;
+
+    document.getElementById('dtItens').innerHTML = its.map(i => {
+        const sp = (i.statusProduto||'ABERTO').toUpperCase();
+        const podeAgir = PODE_APROVAR() && sp === 'ABERTO';
+        return `<div class="dt-item">
+            <div class="dt-item-topo">
+                <span class="q">${esc(String(i.quantidade??''))}x</span>
+                <span class="dt-item-nome">${esc(i.descricao||i.codigoProduto||'—')}</span>
+                <span class="it-pill it-${sp}">${ITL[sp]||sp}</span>
+            </div>
+            <div class="dt-item-meta">
+                ${i.codigoProduto ? `<span class="pk-cod">${esc(i.codigoProduto)}</span>` : `<span class="pk-reg">fora do cadastro</span>`}
+                ${i.idProduto ? `<span class="pk-id">#${i.idProduto}</span>` : `<span class="pk-id off">sem produto</span>`}
+                ${i.observacao ? `<span class="dt-item-obs">${esc(i.observacao)}</span>` : ''}
+            </div>
+            ${podeAgir ? `<div class="dt-item-acoes">
+                ${i.idProduto
+                    ? `<button class="acao-it tr" onclick="abrirOrigem(this,'${esc(i.id)}')"><i class="fa fa-right-left"></i> Transferir do estoque <i class="fa fa-chevron-down seta"></i></button>`
+                    : `<button class="acao-it tr" disabled><i class="fa fa-right-left"></i> Transferir do estoque</button>`}
+                <button class="acao-it cp" onclick="pedirComprar('${esc(i.id)}','${esc(i.descricao||'')}')"><i class="fa fa-cart-shopping"></i> Comprar</button>
+            </div>
+            <div class="dd-origem">
+                <div class="dd-topo">
+                    <i class="fa fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Buscar no estoque da matriz…" oninput="filtrarOrigem(this)" autocomplete="off">
+                </div>
+                <div class="dd-lista"></div>
+            </div>` : ''}
+        </div>`;
+    }).join('') || '<div class="pk-vazio">Sem itens.</div>';
+
+    document.getElementById('dtRodape').innerHTML = !PODE_APROVAR()
+        ? `<span class="cf-obs">Aguardando a gestora resolver.</span>`
+        : (abertos
+            ? `<span class="cf-obs"><i class="fa fa-circle-exclamation"></i> ${abertos} ${abertos===1?'item em aberto':'itens em aberto'}. O pedido fecha sozinho quando todos forem resolvidos.</span>`
+            : `<span class="cf-obs"><i class="fa fa-circle-check"></i> Nenhum item em aberto.</span>`);
+
+    document.getElementById('modalDetalhe').classList.add('on');
+}
+function fecharDetalhe(){ document.getElementById('modalDetalhe').classList.remove('on'); pedidoAberto = null; }
+
+/* ===================== MODAL DE CONFIRMAÇÃO ===================== */
+let acaoConfirmar = null;
+function confirmar({ icone, tom, titulo, texto, detalhe, rotulo, aoConfirmar }) {
+    const m = document.getElementById('modalConfirma');
+    m.querySelector('.cf-ico').className = 'cf-ico ' + tom;
+    m.querySelector('.cf-ico').innerHTML = `<i class="fa ${icone}"></i>`;
+    m.querySelector('.cf-titulo').textContent = titulo;
+    m.querySelector('.cf-texto').innerHTML = texto;
+    const box = m.querySelector('.cf-detalhe');
+    box.innerHTML = detalhe || '';
+    box.style.display = detalhe ? 'block' : 'none';
+    const ok = m.querySelector('.cf-ok');
+    ok.className = 'acao-cf cf-ok ' + tom;      // mantém cf-ok: é por ela que o botão é reencontrado
+    ok.innerHTML = `<i class="fa ${icone}"></i> ${rotulo}`;
+    acaoConfirmar = aoConfirmar;
+    m.classList.add('on');
+}
+function fecharConfirma(){ document.getElementById('modalConfirma').classList.remove('on'); acaoConfirmar = null; }
+function executarConfirma(){ const f = acaoConfirmar; fecharConfirma(); if (f) f(); }
+function aviso(titulo, texto, tom='ok') {
+    confirmar({ icone: tom==='bad'?'fa-circle-exclamation':'fa-circle-check', tom, titulo, texto,
+                detalhe:'', rotulo:'Entendi', aoConfirmar:null });
+    document.getElementById('modalConfirma').querySelector('.cf-cancelar').style.display = 'none';
+}
+function limparAviso(){ document.getElementById('modalConfirma').querySelector('.cf-cancelar').style.display = ''; }
+
+/* ---------------- COMPRAR ---------------- */
+function pedirComprar(idItem, nome) {
+    if (!pedidoAberto) return;
+    const idPedido = pedidoAberto.id;
+    limparAviso();
+    confirmar({
+        icone:'fa-cart-shopping', tom:'cp', titulo:'Marcar como comprado?',
+        texto:'Este item vai ser <b>comprado</b> e entregue direto no estoque de quem pediu.',
+        detalhe:`<b>${esc(nome)}</b><br><span class="cf-obs">O estoque não muda agora — ele sobe quando a mercadoria entrar pela nota fiscal.</span>`,
+        rotulo:'Sim, foi comprado',
+        aoConfirmar: async () => {
+            try {
+                await api('/solicitarEpi/mudarStatusProduto', {
+                    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(idItem)
+                });
+                const fechou = await finalizar(idPedido);
+                await carregar();
+                if (fechou) { fecharDetalhe(); aviso('Pedido finalizado','Era o último item em aberto — o pedido foi encerrado.'); }
+                else abrirDetalhe(idPedido);
+            } catch (e) { aviso('Não deu certo', esc(e.message), 'bad'); }
+        }
+    });
+}
+
+/* ---------------- TRANSFERIR: lista do estoque desce no item ---------------- */
+async function carregarOrigem() {
+    if (ORIGEM) return ORIGEM;
+    const bruto = await api('/solicitarEpi/listarRegiao?regiao=' + encodeURIComponent('ADM. HHTEC'));
+    ORIGEM = bruto.map(p => ({ id:p.id, cod:p.codigoH, nome:p.nomeCompletos, saldo:p.quantidadeEstoque, regiao:'BASE' }));
+    return ORIGEM;
+}
+function abrirOrigem(botao, idItem) {
+    itemAlvo = idItem;
+    const dd = botao.closest('.dt-item-acoes').nextElementSibling;
+    const jaAberto = dd.classList.contains('on');
+    fecharOrigens();
+    if (jaAberto) return;
+    dd.classList.add('on');
+    dd.querySelector('input').value = '';
+    dd.querySelector('.dd-lista').innerHTML = '<div class="dd-vazio"><i class="fa fa-spinner fa-spin"></i> carregando o estoque…</div>';
+    dd.querySelector('input').focus();
+    carregarOrigem().then(() => pintarOrigem(dd)).catch(e => {
+        dd.querySelector('.dd-lista').innerHTML = `<div class="dd-vazio">${esc(e.message)}</div>`;
+    });
+}
+function fecharOrigens(){ document.querySelectorAll('.dd-origem.on').forEach(d => d.classList.remove('on')); }
+function filtrarOrigem(input){ pintarOrigem(input.closest('.dd-origem')); }
+
+function pintarOrigem(dd) {
+    const q = norm((dd.querySelector('.dd-topo input').value||'').trim());
+    const box = dd.querySelector('.dd-lista');
+    const arr = (ORIGEM||[]).filter(p => p.saldo > 0 && (!q || norm(p.nome).includes(q) || norm(p.cod).includes(q)));
+    const conta = dd.querySelector('.dd-conta');
+    if (conta) conta.textContent = arr.length ? `${arr.length} produto${arr.length>1?'s':''}` : '';
+    if (!arr.length) { box.innerHTML = '<div class="dd-vazio">Nenhum produto com saldo.</div>'; return; }
+    box.innerHTML = arr.slice(0,80).map(p => `
+        <button type="button" class="dd-item" onclick="confirmarTransferir(${p.id})">
+            <span class="dd-foto"><i class="fa fa-box"></i></span>
+            <span class="dd-txt">
+                <span class="dd-nome">${esc(p.nome)}</span>
+                <span class="dd-meta"><span class="pk-cod">${esc(p.cod)}</span><span class="pk-id">#${p.id}</span><span class="dd-reg">${esc(p.regiao)}</span></span>
+            </span>
+            <span class="dd-saldo"><b>${p.saldo}</b> un.</span>
+        </button>`).join('');
+}
+
+function confirmarTransferir(idProdutoOrigem) {
+    if (!pedidoAberto) return;
+    solAlvo = pedidoAberto.id;
+    const p = (ORIGEM||[]).find(x => x.id === idProdutoOrigem);
+    fecharOrigens();
+    limparAviso();
+    confirmar({
+        icone:'fa-right-left', tom:'tr', titulo:'Confirmar transferência?',
+        texto:'A quantidade sai do <b>estoque da matriz</b> e entra no estoque de quem pediu.',
+        detalhe:`<b>${esc(p ? p.nome : ('produto #'+idProdutoOrigem))}</b><br>
+                 <span class="cf-obs">Saldo hoje: ${p ? p.saldo : '?'} un.</span>`,
+        rotulo:'Sim, transferir',
+        aoConfirmar: async () => {
+            try {
+                await api(`/solicitarEpi/transferir?idProdutoOrigem=${idProdutoOrigem}&idItem=${encodeURIComponent(itemAlvo)}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'}, body: String(solAlvo)
+                });
+                ORIGEM = null;                       // o saldo mudou
+                const fechou = await finalizar(solAlvo);
+                await carregar();
+                if (fechou) { fecharDetalhe(); aviso('Pedido finalizado','Não restou item em aberto — o pedido foi encerrado.'); }
+                else { abrirDetalhe(solAlvo); aviso('Transferência feita','Estoque atualizado. Ainda há item em aberto neste pedido.'); }
+            } catch (e) { aviso('Não deu certo', esc(e.message), 'bad'); }
+        }
+    });
+}
+
+/* A API recusa fechar enquanto houver item em aberto — e isso é o esperado,
+   não é erro de tela. Por isso a falha aqui é engolida de propósito. */
+async function finalizar(idPedido) {
+    try {
+        await api('/solicitarEpi/mudarFinalizado', {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: String(idPedido)
+        });
+        return true;
+    } catch (e) { return false; }
+}
+
+/* ---------------- início ---------------- */
+async function iniciar() {
+    aplicarPapel();
+    if (!PODE_APROVAR()) {
+        itens = []; renderItens();
+        try { await carregarCatalogo(); }
+        catch (e) { document.getElementById('catalogo').innerHTML = `<div class="pk-vazio">${esc(e.message)}</div>`; }
+    }
+    ORIGEM = null;
+    await carregar();
+}
+iniciar();
+</script>
+</body>
+</html>

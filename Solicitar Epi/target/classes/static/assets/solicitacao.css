@@ -1,0 +1,212 @@
+/* ===================================================================
+   Estilos da tela de Solicitação de Material.
+   Copiados do sistema em produção, sem alteração de aparência.
+   As cores vêm dos tokens de assets/hhtec-ui.css.
+   =================================================================== */
+.head-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+    .api-chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--FM);font-size:.68rem;padding:4px 10px;border:1px solid var(--line);color:var(--ink-3)}
+    .api-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-4)}
+    .api-chip.on .dot{background:var(--ok)} .api-chip.on{color:var(--ok);border-color:var(--ok-b)}
+    .api-chip.off .dot{background:var(--bad)} .api-chip.off{color:var(--bad);border-color:var(--bad-b)}
+
+    .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;align-items:start}
+    @media(max-width:980px){.grid2{grid-template-columns:1fr}}
+    /* gestor/TI: só a lista, em coluna única */
+    .grid1{display:block;max-width:760px}
+
+    .fg{margin-bottom:14px}
+    .fl{display:block;font-family:var(--FM);font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:6px}
+    .fi{width:100%;padding:10px 12px;background:var(--void);border:1px solid var(--line);color:var(--ink);font-family:var(--FB);font-size:.9rem;outline:none;box-sizing:border-box}
+    .fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-s)}
+    .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+    /* seletor de produto */
+    .pk-search{position:relative;margin-bottom:8px}
+    .pk-search input{width:100%;padding:9px 12px 9px 34px;background:var(--void);border:1px solid var(--line);color:var(--ink);outline:none;font-family:var(--FB);font-size:.9rem;box-sizing:border-box}
+    .pk-search i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink-4);font-size:.82rem}
+    .pk-list{max-height:270px;overflow-y:auto;border:1px solid var(--line);background:var(--void);padding:5px}
+    .pk-card{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:7px 9px;cursor:pointer;border:1px solid transparent;border-bottom:1px solid var(--line);transition:.12s}
+    .pk-card:hover{background:var(--accent-s);border-color:var(--accent-b)}
+    .pk-foto{width:40px;height:40px;background:var(--surf-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .pk-foto img{width:100%;height:100%;object-fit:cover} .pk-foto i{color:var(--ink-4)}
+    .pk-cod{font-family:var(--FM);color:var(--accent);background:var(--accent-s);border:1px solid var(--accent-b);padding:1px 7px;font-size:.72rem}
+    .pk-reg{font-family:var(--FM);font-size:.62rem;color:var(--ink-3);border:1px solid var(--line);padding:1px 6px;margin-left:4px}
+    /* id do produto: é o que a API usa para achar o item no estoque */
+    .pk-id{font-family:var(--FM);font-size:.66rem;color:var(--blue);background:var(--blue-bg);border:1px solid var(--blue-b);padding:1px 6px;margin-left:4px}
+    .pk-id.off{color:var(--ink-4);background:transparent;border-color:var(--line)}
+    .pk-nome{font-family:var(--FD);font-size:.88rem;font-weight:700;color:var(--ink);text-transform:uppercase;margin-top:2px;line-height:1.15}
+    .pk-saldo{font-family:var(--FM);text-align:right;font-size:.7rem;color:var(--ink-3)}
+    .pk-saldo b{display:block;font-family:var(--FD);font-size:1.05rem;color:var(--ok)}
+    .pk-vazio{padding:24px;text-align:center;color:var(--ink-4);font-size:.84rem}
+
+    /* itens escolhidos */
+    .itens-tbl{width:100%;border-collapse:collapse;font-size:.86rem}
+    .itens-tbl th{font-family:var(--FM);font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);background:var(--void)}
+    .itens-tbl td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+    .itens-tbl input{width:100%;padding:6px 8px;background:var(--void);border:1px solid var(--line);color:var(--ink);font-family:var(--FB);font-size:.84rem;outline:none;box-sizing:border-box}
+    .itens-tbl input:focus{border-color:var(--accent)}
+    .btn-x{background:transparent;border:1px solid var(--line);color:var(--ink-3);padding:5px 8px;cursor:pointer;transition:.15s}
+    .btn-x:hover{color:var(--bad);border-color:var(--bad-b)}
+    .vazio-itens{padding:26px;text-align:center;color:var(--ink-4);font-size:.86rem;border:1px dashed var(--line)}
+
+    /* lista de solicitações */
+    /* só tokens do tema: assim funciona no claro (padrão) e no html.hhtec-dark */
+    .sol-card{border:1px solid var(--line);background:linear-gradient(180deg,var(--surf-2),var(--card));border-radius:var(--r-s);padding:13px;margin-bottom:9px}
+    .sol-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+    .sol-id{font-family:var(--FM);font-size:.68rem;color:var(--ink-2)}
+    .sol-unid{font-family:var(--FD);font-size:1rem;font-weight:700;color:var(--ink);text-transform:uppercase;margin-top:2px}
+    .sol-meta{font-family:var(--FM);font-size:.7rem;color:var(--ink-3);margin-top:3px}
+    .st-pill{padding:3px 10px;font-family:var(--FM);font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border:1px solid transparent;white-space:nowrap}
+    .st-ABERTO{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-b)}
+    .st-TRANSFERIDO{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-b)}
+    .st-FINALIZADO{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-b)}
+    .sol-itens{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);font-size:.8rem;color:var(--ink-2)}
+    .sol-itens .li{display:flex;gap:8px;padding:3px 0;align-items:center}
+    .sol-itens .li .q{font-family:var(--FM);color:var(--accent);min-width:34px}
+    .sol-itens .li-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* cada item vira uma linha com situação e as duas saídas possíveis */
+    .sol-itens .li{border-bottom:1px solid var(--line-2)}
+    .sol-itens .li:last-child{border-bottom:0}
+    .it-pill{font-family:var(--FM);font-size:.58rem;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px;border:1px solid transparent;white-space:nowrap}
+    .it-ABERTO{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-b)}
+    .it-TRANSFERIDO{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-b)}
+    .it-COMPRADO{background:var(--plum-bg);color:var(--plum);border-color:var(--plum-b)}
+    /* barra de filtros da lista */
+    .fl-barra{padding:11px 14px;border-bottom:1px solid var(--line);background:var(--surf-2);display:flex;flex-direction:column;gap:9px}
+    .fl-busca{position:relative;display:flex;align-items:center}
+    .fl-busca > i{position:absolute;left:11px;color:var(--ink-4);font-size:.8rem;pointer-events:none}
+    .fl-busca input{width:100%;padding:8px 34px 8px 32px;border-radius:20px;box-sizing:border-box;outline:none;
+                    font-family:var(--FB);font-size:.85rem;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+    .fl-busca input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-s)}
+    .fl-limpar{position:absolute;right:5px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+               cursor:pointer;font-size:.78rem;border:0!important;background:transparent!important;color:var(--ink-2)!important}
+    .fl-limpar:hover{background:var(--line-2)!important;color:var(--ink)!important}
+    .fl-linha{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .fl-rot{font-family:var(--FM);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);margin-right:2px}
+    .fl-chip{font-family:var(--FB);font-size:.7rem;font-weight:600;padding:3px 11px;border-radius:20px;cursor:pointer;transition:.15s;
+             border:1px solid var(--line)!important;background:transparent!important;color:var(--ink-2)!important}
+    .fl-chip:hover{color:var(--ink)!important;border-color:var(--ink-3)!important}
+    .fl-chip.on{background:var(--accent)!important;color:var(--hdr)!important;border-color:var(--accent)!important}
+    .fl-conta{margin-left:auto;font-family:var(--FM);font-size:.66rem;color:var(--ink-2)}
+    /* unidade travada: informação, não escolha */
+    .fl-fixa{font-family:var(--FB);font-size:.72rem;font-weight:600;color:var(--ink-2);background:var(--line-2);
+             border:1px solid var(--line);border-radius:20px;padding:3px 11px;display:inline-flex;align-items:center;gap:6px}
+    .fl-fixa i{color:var(--accent);font-size:.68rem}
+    .fi-fixo{display:flex;align-items:center;gap:8px;background:var(--line-2)!important;color:var(--ink-2)!important;
+             cursor:default;font-size:.88rem}
+    .fi-fixo i{color:var(--accent);font-size:.82rem}
+
+    /* card da lista: só resumo, e o card inteiro abre o pedido */
+    .sol-card.clicavel{cursor:pointer;transition:.15s}
+    .sol-card.clicavel:hover{border-color:var(--accent-b);box-shadow:var(--sh-sm);transform:translateY(-1px)}
+    .sol-rodape{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .sol-resumo{font-family:var(--FM);font-size:.7rem;color:var(--ink-3);display:inline-flex;align-items:center;gap:8px}
+    .sol-abertos{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-b);border-radius:20px;padding:1px 8px;font-size:.62rem}
+    .sol-abrir{font-family:var(--FB);font-size:.76rem;font-weight:600;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+    .sol-card.clicavel:hover .sol-abrir i{transform:translateX(3px)}
+    .sol-abrir i{transition:.15s}
+
+    /* tela do pedido — larga, porque a lista de estoque abre dentro dela.
+       Precisa de .modal-box junto: só .dt-box perde para o .modal-box{max-width:560px},
+       que está declarado depois com a mesma especificidade. */
+    .modal-box.dt-box{max-width:920px}
+    .dt-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px}
+    @media(max-width:520px){.dt-info{grid-template-columns:1fr}}
+    .dt-linha{display:flex;justify-content:space-between;gap:10px;font-size:.82rem;padding:6px 0;border-bottom:1px solid var(--line-2)}
+    .dt-linha span{color:var(--ink-3)} .dt-linha b{color:var(--ink);text-align:right}
+    .dt-obs{grid-column:1/-1;margin-top:4px;padding:10px 12px;background:var(--surf-2);border:1px solid var(--line);border-radius:var(--r-s);font-size:.84rem;color:var(--ink-2);line-height:1.5}
+    .dt-obs i{color:var(--accent);margin-right:6px}
+    .dt-sec{font-family:var(--FM);font-size:.64rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin:4px 0 10px}
+    .dt-item{border:1px solid var(--line);border-radius:var(--r-s);padding:11px 13px;margin-bottom:9px;background:var(--surf-2)}
+    .dt-item-topo{display:flex;align-items:center;gap:9px}
+    .dt-item-nome{flex:1;min-width:0;font-size:.9rem;font-weight:600;color:var(--ink)}
+    .dt-item-meta{margin-top:7px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+    .dt-item-obs{font-size:.74rem;color:var(--ink-3);font-style:italic}
+    .dt-item-acoes{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .acao-it .seta{font-size:.58rem;margin-left:2px;transition:.15s}
+
+    /* lista do estoque de origem: desce dentro do próprio item */
+    .dd-origem{display:none;margin-top:9px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--card);overflow:hidden}
+    .dd-origem.on{display:block}
+    .dd-topo{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line);background:var(--surf-3)}
+    .dd-topo i{color:var(--ink-4);font-size:.78rem}
+    .dd-topo input{flex:1;min-width:0;background:transparent;border:0;outline:none;font-family:var(--FB);font-size:.84rem;color:var(--ink)}
+    /* filtro por estoque: separa BASE de São Bernardo */
+    .dd-filtros{display:flex;align-items:center;gap:6px;padding:8px 11px;border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap}
+    .dd-f{font-family:var(--FB);font-size:.7rem;font-weight:600;padding:4px 11px;border-radius:20px;cursor:pointer;transition:.15s;
+          border:1px solid var(--line)!important;background:transparent!important;color:var(--ink-3)!important}
+    .dd-f:hover{color:var(--ink)!important;border-color:var(--ink-3)!important}
+    .dd-f.on{background:var(--accent)!important;color:var(--hdr)!important;border-color:var(--accent)!important}
+    .dd-conta{margin-left:auto;font-family:var(--FM);font-size:.66rem;color:var(--ink-3)}
+
+    .dd-lista{max-height:420px;overflow-y:auto}
+    .dd-item{width:100%;display:grid;grid-template-columns:46px 1fr auto;gap:11px;align-items:center;text-align:left;
+             padding:9px 11px;background:transparent!important;border:0!important;border-bottom:1px solid var(--line-2)!important;
+             cursor:pointer;font-family:var(--FB);color:var(--ink)!important;transition:.12s}
+    .dd-item:last-child{border-bottom:0!important}
+    .dd-item:hover{background:var(--accent-s)!important}
+    .dd-foto{width:46px;height:46px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--surf-3);
+             display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+    .dd-foto img{width:100%;height:100%;object-fit:cover}
+    .dd-foto i{color:var(--ink-4);font-size:.95rem}
+    .dd-txt{min-width:0;display:flex;flex-direction:column;gap:4px}
+    .dd-nome{font-size:.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dd-meta{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
+    .dd-reg{font-family:var(--FM);font-size:.6rem;color:var(--ink-3);border:1px solid var(--line);border-radius:20px;padding:1px 7px}
+    .dd-saldo{font-family:var(--FM);font-size:.72rem;color:var(--ink-3);white-space:nowrap;text-align:right}
+    .dd-saldo b{display:block;color:var(--ok);font-size:1rem}
+    .dd-vazio{padding:16px;text-align:center;color:var(--ink-4);font-size:.82rem}
+    @media(max-width:520px){
+        .dd-item{grid-template-columns:40px 1fr auto}
+        .dd-foto{width:40px;height:40px}
+    }
+    .acao-it[disabled]{opacity:.45;cursor:not-allowed}
+    .acao-it[disabled]:hover{background:var(--surf-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+    .li-acoes{display:inline-flex;gap:6px;flex-shrink:0}
+    /* O tema do sistema estiliza TODO <button> com especificidade (0,5,1)
+       (button:not(...) cinco vezes). Sem !important estes botoes voltam a ficar
+       translucidos e param de seguir o tema claro/escuro. */
+    .acao-it{font-family:var(--FB);font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--line)!important;background:var(--surf-2)!important;color:var(--ink-2)!important;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;transition:.15s}
+    .acao-it i{font-size:.66rem}
+    .acao-it.tr:hover{background:var(--ok-bg)!important;color:var(--ok)!important;border-color:var(--ok-b)!important}
+    .acao-it.cp:hover{background:var(--plum-bg)!important;color:var(--plum)!important;border-color:var(--plum-b)!important}
+    @media(max-width:560px){
+        .sol-itens .li{flex-wrap:wrap}
+        .li-nome{flex:1 1 100%;white-space:normal;order:-1}
+    }
+
+    /* ---- modais ---- */
+    .modal{position:fixed;inset:0;background:rgba(15,14,18,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+    .modal.on{display:flex}
+    .modal-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);overflow:hidden}
+    .modal-hd{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .modal-hd h3{font-family:var(--FD);font-size:1.05rem;font-weight:800;text-transform:uppercase;color:var(--ink)}
+    .modal-hd p{font-size:.76rem;color:var(--ink-3);margin-top:3px;line-height:1.45}
+    .modal-bd{padding:14px 16px;overflow-y:auto}
+
+    /* confirmação */
+    .cf-box{max-width:420px}
+    .cf-corpo{padding:26px 24px 18px;text-align:center}
+    .cf-ico{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:1.35rem}
+    .cf-ico.tr{background:var(--ok-bg);color:var(--ok)}
+    .cf-ico.cp{background:var(--plum-bg);color:var(--plum)}
+    .cf-ico.ok{background:var(--ok-bg);color:var(--ok)}
+    .cf-ico.bad{background:var(--bad-bg);color:var(--bad)}
+    .cf-titulo{font-family:var(--FD);font-size:1.25rem;font-weight:800;text-transform:uppercase;color:var(--ink);letter-spacing:.01em}
+    .cf-texto{font-size:.88rem;color:var(--ink-2);line-height:1.5;margin-top:7px}
+    .cf-detalhe{margin-top:14px;padding:11px 13px;background:var(--surf-2);border:1px solid var(--line);border-radius:var(--r-s);font-size:.84rem;color:var(--ink);text-align:left}
+    .cf-obs{font-size:.76rem;color:var(--ink-3);line-height:1.45}
+    .cf-rodape{padding:14px 16px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;background:var(--surf-2)}
+    .acao-cf{font-family:var(--FB);font-size:.84rem;font-weight:600;padding:9px 18px;border-radius:var(--r-s);border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+    /* --ink-3 aqui ficava com contraste 2.0 no tema escuro; --ink-2 resolve nos dois */
+    .acao-cf.ghost{background:transparent!important;border-color:var(--line)!important;color:var(--ink-2)!important}
+    .acao-cf.ghost:hover{color:var(--ink)!important;border-color:var(--ink-3)!important}
+    .acao-cf.tr,.acao-cf.ok{background:var(--ok)!important;color:var(--hdr)!important}
+    .acao-cf.cp{background:var(--plum)!important;color:var(--hdr)!important}
+    .acao-cf.bad{background:var(--bad)!important;color:var(--hdr)!important}
+    .acao-cf:hover{filter:brightness(1.08)}
+    .btn-mini{font-family:var(--FB);font-size:.76rem;font-weight:600;padding:6px 12px;border:1px solid var(--ok-b);background:transparent;color:var(--ok);cursor:pointer;transition:.15s}
+    .btn-mini:hover{background:var(--ok-bg)}
+
+    .alerta{padding:12px 14px;border-left:3px solid var(--bad);background:var(--bad-bg);color:var(--bad);font-size:.84rem;margin-bottom:14px;line-height:1.5}
+    .alerta code{font-family:var(--FM);font-size:.78rem;background:var(--line-2);padding:1px 5px}
